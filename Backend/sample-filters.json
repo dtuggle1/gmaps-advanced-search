@@ -1,0 +1,10 @@
+{
+    "keyword": "coffee",
+    "min_rating": 4.8,
+    "location_latitude": "123",
+    "location_longittude": "123",
+    "distance": 5,
+    "min_reviews": 50,
+    "price": "TBD",
+    "open_hour": "now"
+}

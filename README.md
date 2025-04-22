@@ -34,3 +34,10 @@ Front -> Back
 
 Back -> Front
 - Output data
+
+
+# Roadmap
+## MVP
+- Filtering with output to a simple web app
+
+
