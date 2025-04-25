@@ -7,14 +7,6 @@ using json = nlohmann::json;
 
 class Filters {
     private:
-        std::string keyword;
-        float min_rating;
-        std::string location_latitude;
-        std::string location_longittude;
-        float distance;
-        int min_reviews;
-        std::string price;
-        std::string open_hour;
         json primary_search_filters;
 
         // json object data type
@@ -48,6 +40,14 @@ class Filters {
             primary_search_filters = payload;
         }
     public:
+        std::string keyword;
+        float min_rating;
+        std::string location_latitude;
+        std::string location_longittude;
+        float distance;
+        int min_reviews;
+        std::string price;
+        std::string open_hour;
         Filters(const std::string& filename){
             loadJsonFromFile(filename);
             primarySearchFilters();
@@ -60,9 +60,15 @@ class Filters {
 json primarySearch(Filters filters){
     std::string url;
     std::string payload;
-    url = "https://serpapi.com/searches/625535ed92cebc19/6807b9b6a919a9218a7d85e7.json"
+    
+    url = std::format("https://serpapi.com/search.json?engine=google_maps&q={}&ll=@{},{},15.1z&type=search&api_key={}", //convert zoom level to distance
+    filters->keyword,
+    filters->latitude,
+    filters->longtitude,
+    std::getenv("SERP_DTUGGLE1_API_KEY");
+    )
     std::cout << "Attempting to Access API" << "\n";
-    cpr::Response response = cpr::Post(
+    cpr::Response response = cpr::Get(
         cpr::Url{url},
         cpr::Header{{"Content-Type", "application/json"}},
         cpr::Body{filters->payload.dump()}
@@ -70,10 +76,9 @@ json primarySearch(Filters filters){
     std::cout << "Status" << response.status_code << "\n";
     std::cout << "Response" << response.text << "\n";
 
-    // todo: convert output to json type
+    json responseJson = nlohmann::json::parse(response.text);
 
-    json output;
-    return output
+    return responseJson;
     
 }
 
@@ -92,7 +97,5 @@ json primarySearch(Filters filters){
 int main() {
     std:: string filename = "sample-filters.json";
     Filters filters(filename);
-
-
 
 }
