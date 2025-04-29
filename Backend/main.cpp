@@ -5,20 +5,23 @@
 #include <cpr/cpr.h>
 using json = nlohmann::json;
 
+bool CALL_API=true;
+
+json loadJsonFromFile(std::string& filename){
+    std::ifstream file(filename);
+    if (!file.is_open()){
+        throw std::runtime_error("Couldnt open file");
+    }
+    json json_file;
+    file >> json_file;
+    return json_file;
+}
+
 class Filters {
     private:
-        json primary_search_filters;
-
         // json object data type
 
-        void loadJsonFromFile(const std::string& filename){
-            std::ifstream file(filename);
-            if (!file.is_open()){
-                throw std::runtime_error("Couldnt open file");
-            }
-            json json_file;
-            file >> json_file;
-
+        void parseJsonFile(json json_file){
             keyword = json_file.at("keyword").get<std::string>();
             min_rating = json_file.at("min_rating").get<int>();
             location_latitude = json_file.at("location_latitude").get<std::string>();
@@ -27,17 +30,6 @@ class Filters {
             min_reviews = json_file.at("min_reviews").get<int>();
             price = json_file.at("price").get<std::string>();
             open_hour = json_file.at("open_hour").get<std::string>();
-        }
-        void primarySearchFilters(){
-            
-            std::string coordinates = std::format("{},{}", location_latitude, location_longittude);
-            // todo: change payload vars to the correct ones per the api
-            json payload = {
-                {"keyword", this->keyword},
-                {"coordinates", coordinates}, 
-                {"distance", this->distance}
-            }
-            primary_search_filters = payload;
         }
     public:
         std::string keyword;
@@ -48,13 +40,13 @@ class Filters {
         int min_reviews;
         std::string price;
         std::string open_hour;
-        Filters(const std::string& filename){
-            loadJsonFromFile(filename);
-            primarySearchFilters();
+
+        Filters(std::string& filename){
+            json filters_input;
+            filters_input = loadJsonFromFile(filename);
+            parseJsonFile(filters_input);
         }
-        json getPrimarySearchFilters(){
-            return primary_search_filters;
-        }
+
 }
 
 json primarySearch(Filters filters){
@@ -76,12 +68,22 @@ json primarySearch(Filters filters){
     std::cout << "Status" << response.status_code << "\n";
     std::cout << "Response" << response.text << "\n";
 
-    json responseJson = nlohmann::json::parse(response.text);
-
-    return responseJson;
-    
+    json search_results = nlohmann::json::parse(response.text);
+    return search_results;   
 }
 
+json fineSearch(Filters filters, json api_output){
+    json results = api_output["local_results"];
+    for (auto it results.begin(); results.end()){
+        if ((*it)["rating"] < filters.min_rating){
+            it = results.erase(it);
+        }
+        else {
+            ++it;
+        }
+    }
+    return results;
+}
 // All filters and ordering preferences come in via json block
 
 // Primary filters used for initial search
@@ -95,7 +97,18 @@ json primarySearch(Filters filters){
 // Send results to front-end
 
 int main() {
-    std:: string filename = "sample-filters.json";
-    Filters filters(filename);
+    json api_output;
+    json results;
+    std:: string sample_filters_filename = "sample-filters.json";
+    Filters filters(sample_filters_filename);
+    if CALL_API {
+        api_output = primarySearch(filters);
+    }
+    else {
+        api_output = loadJsonFromFile("serp-api-sample.json");
+    }
+    results = fineSearch(filters, api_output);
+    std::ofstream file("output.json");
+    file << api_output.dump(4); 
 
 }
